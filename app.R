@@ -12,12 +12,13 @@ library(tidyverse)
 library(RColorBrewer)
 library(ggplot2)
 library(ggrepel)
+library(lubridate)
 
 # Read data
 datadir <- "data/results/processed"
 
 # Load data
-data <- readRDS(file.path(datadir, "nite_moves_data.Rds"))
+data <- readRDS(file.path(datadir, "nite_moves_data.Rds")) 
 
 # Format data
 ################################################################################
@@ -27,6 +28,7 @@ aqua <- filter(data, event=="Aquathon")
 run5 <- filter(data, event=="5km run")
 swim1 <- filter(data, event=="1km swim")
 swim2 <- filter(data, event=="2km swim")
+swim3 <- filter(data, event == "500m swim")
 
 
 # User interface
@@ -39,7 +41,23 @@ ui <- navbarPage("",
   tabPanel("Home",
            
     # title
-    titlePanel("Working on our Nite Moves")),
+    titlePanel("Working on our Nite Moves"),
+    
+    ## 
+    sidebarLayout(
+      
+      sidebarPanel(
+        checkboxGroupInput(inputId = "seasons", "Choose season(s):",
+                           choices = as.character(unique(data$season)), selected = "2019", inline = FALSE),
+        
+        selectInput(inputId = "events", "Choose event:",
+                    choices = unique(data$event), selected = "5k run", multiple = FALSE)),
+      
+        # Plot homepage figure
+        mainPanel(plotOutput(outputId = "homepage_fig"))
+        
+      )),
+      
                  
   # Results table
   tabPanel("All",
