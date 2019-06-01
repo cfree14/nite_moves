@@ -1,6 +1,6 @@
 
 # Clear
-
+rm(list = ls())
 
 # Setup
 ################################################################################
@@ -11,9 +11,8 @@ library(tidyverse)
 library(lubridate)
 
 # Directories
-datadir <- "data/raw"
-codedir <- "code"
-outdir <- "data"
+datadir <- "data/results/raw"
+outdir <- "data/results/processed"
 
 # 4 sections to each text file:
 # 5k run: place, bib, name, age, city, state, time, pace, gplace, dplace
@@ -27,7 +26,7 @@ outdir <- "data"
 ################################################################################
 
 # Function to format Nite Moves results text file
-filename <- "data/Nite Moves 5_1_19.txt"
+filename <- "data/results/raw/Nite Moves 5_1_19.txt"
 format_data <- function(filename){
   
   # Read text file into lines
@@ -280,8 +279,11 @@ data2 <- data1 %>%
 saveRDS(data2, file=file.path(outdir, "nite_moves_data.Rds"))
 
 
+# Test plot
+################################################################################
+
 # 
-tm <- filter(data2, name=="Tracey Mangin" & event=="Aquathon")
+tm <- filter(data2, name=="Tracey Mangin")
 
 
 g <- ggplot(tm, aes(x=date, y=minute(time))) + 
