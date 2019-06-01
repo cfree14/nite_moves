@@ -306,34 +306,18 @@ for(i in 1:length(files)){
 # Final formatting
 data2 <- data1 %>% 
   arrange(date, event, place) %>% 
-  mutate(season=year(date), 
-         time=ms(time),
-         pace=ms(pace),
-         sw_time=ms(sw_time),
-         rn_time=ms(rn_time)) %>% 
+  # Add season column
+  mutate(season=as.numeric(year(date)), 
+         time=ifelse(nchar(time)==5, paste0("0:", time), time),
+         time=as.POSIXct(strptime(time, format="%H:%M:%S")),
+         sw_time=ifelse(nchar(sw_time)==5, paste0("0:", sw_time), sw_time),
+         sw_time=as.POSIXct(strptime(sw_time, format="%H:%M:%S")),
+         rn_time=ifelse(nchar(rn_time)==5, paste0("0:", rn_time), rn_time),
+         rn_time=as.POSIXct(strptime(rn_time, format="%H:%M:%S"))) %>% 
+         # sw_time=ms(sw_time),
+         # rn_time=ms(rn_time)) %>% 
   select(season, everything())
 
 # Export
 saveRDS(data2, file=file.path(outdir, "nite_moves_data.Rds"))
-
-
-# Test plot
-################################################################################
-
-# 
-tm <- filter(data2, name=="Tracey Mangin")
-
-
-g <- ggplot(tm, aes(x=date, y=minute(time))) + 
-  facet_wrap(~season, nrow=1) +
-  geom_line() + 
-  theme_bw()
-g
-str(tm)
-
-
-
-
-
-
 
