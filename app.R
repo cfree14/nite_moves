@@ -35,6 +35,9 @@ swim2 <- filter(data, event=="2km swim")
 # User interface
 ui <- navbarPage("",
                  
+  # welcome page
+  tabPanel("Home"),
+                 
   # Results table
   tabPanel("All",
            
