@@ -39,7 +39,7 @@ ui <- navbarPage("",
   tabPanel("Home",
            
     # title
-    titlePanel("Working on our Nite Moves\nSanta Barbara Nite Moves Results")),
+    titlePanel("Working on our Nite Moves")),
                  
   # Results table
   tabPanel("All",
