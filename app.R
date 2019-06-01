@@ -36,7 +36,10 @@ swim2 <- filter(data, event=="2km swim")
 ui <- navbarPage("",
                  
   # welcome page
-  tabPanel("Home"),
+  tabPanel("Home",
+           
+    # title
+    titlePanel("Working on our Nite Moves\nSanta Barbara Nite Moves Results")),
                  
   # Results table
   tabPanel("All",
