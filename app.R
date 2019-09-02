@@ -30,6 +30,10 @@ swim1 <- filter(data, event=="1km swim")
 swim2 <- filter(data, event=="2km swim")
 swim3 <- filter(data, event == "500m swim")
 
+# vector of racers
+racer_vec <- unique(data$name)
+racer_vec2 <- racer_vec[!racer_vec %in% c("*** Unidentified", "Unidentified", "Unknown")]
+
 
 # User interface
 ################################################################################
@@ -50,8 +54,12 @@ ui <- navbarPage("",
         checkboxGroupInput(inputId = "seasons", "Choose season(s):",
                            choices = as.character(unique(data$season)), selected = "2019", inline = FALSE),
         
-        selectInput(inputId = "events", "Choose event:",
-                    choices = unique(data$event), selected = "5k run", multiple = FALSE)),
+        selectInput(inputId = "event", "Choose event:",
+                    choices = unique(data$event), selected = "5km run", multiple = FALSE),
+      
+        selectizeInput(inputId = "participant", label = "Choose racer:", 
+                       choices = c("None", racer_vec2), selected = "None", multiple = FALSE,
+                       options = NULL)),
       
         # Plot homepage figure
         mainPanel(plotOutput(outputId = "homepage_fig"))
@@ -140,6 +148,43 @@ server <- function(input, output){
       select(date, event, place, time, gplace, dplace, sw_time, sw_place, rn_time, rn_place)
     
   }))
+  
+  ## homepage plot
+  output$homepage_fig <- renderPlot({
+    
+    event_name <- input$event
+    season_vec <- as.numeric(input$seasons)
+    racer_name <- input$participant
+    
+    # Plot data
+    ## each unitentified racer needs unique name.
+    
+    hpfig <- ggplot(data = data %>% filter(event == event_name,
+                                    season %in% season_vec), aes(x = date, y = time)) +
+      geom_point(size = 0.5, alpha = 0, color = "#CCCCCC") +
+      geom_line(data = data %>% filter(event == event_name,
+                                       season %in% season_vec), aes(x = date, y = time, group = name), color = "#CCCCCC") +
+      geom_line(data = data %>% filter(event == event_name,
+                                      season %in% season_vec,
+                                      name == racer_name), aes(x = date, y = time), color = "#28A072", alpha = 1, size = 1) +
+      geom_smooth(method = "lm", se = FALSE) +
+      facet_wrap(~season, nrow = 1, scales = "free") +
+      ggtitle(paste(input$event, "Results", sep = " ")) +
+      labs(x="Date", y="Time") +
+      theme_bw() +
+      theme(axis.text = element_text(size = 12),
+            axis.title = element_text(size = 14),
+            title = element_text(size = 16),
+            strip.text = element_text(size = 14),
+            panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank())
+    
+    hpfig
+    
+    
+  })
+  
+
   
   # Plot aquathon times
   output$aquathonPlot <- renderPlot({
