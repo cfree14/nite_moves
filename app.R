@@ -62,11 +62,16 @@ ui <- navbarPage("",
   # Results table
   tabPanel("All",
            
-  # Title
-  titlePanel("All results"), 
-  
-  # Results table
-  DT::dataTableOutput("resultsTable")
+    # Title
+    titlePanel("All results"), 
+    
+    # Select athlete
+    selectInput("allAthlete",
+                "Select athlete:",
+                choices=sort(unique(data$name)), multiple=F, selectize=F),
+    
+    # Results table
+    DT::dataTableOutput("resultsTable")
            
   ),
   
@@ -127,7 +132,13 @@ server <- function(input, output){
   # All results table
   # Filter data based on selections
   output$resultsTable <- DT::renderDataTable(DT::datatable({
-    data
+    
+    # Format data for display
+    allAthlete <- "Tracey Mangin" 
+    sdata <- data %>% 
+      filter(name==allAthlete) %>% 
+      select(date, event, place, time, gplace, dplace, sw_time, sw_place, rn_time, rn_place)
+    
   }))
   
   # Plot aquathon times
