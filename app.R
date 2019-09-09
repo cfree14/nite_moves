@@ -18,7 +18,17 @@ library(lubridate)
 datadir <- "data/results/processed"
 
 # Load data
-data <- readRDS(file.path(datadir, "nite_moves_data.Rds")) 
+data_orig <- readRDS(file.path(datadir, "nite_moves_data.Rds")) 
+
+# Format data for aesthetics
+data <- data_orig %>% 
+  mutate(event=recode(event, 
+                      "500m swim"="500 m swim",
+                      "1km swim"="1 km swim",
+                      "2km swim"="2 km swim",
+                      "5km run"="5 km run"),
+         event=factor(event, levels=c("Aquathon", "5 km run", "1 km swim", "2 km swim", "500 m swim"))) 
+
 
 # Format data
 ################################################################################
@@ -28,11 +38,10 @@ aqua <- filter(data, event=="Aquathon")
 run5 <- filter(data, event=="5km run")
 swim1 <- filter(data, event=="1km swim")
 swim2 <- filter(data, event=="2km swim")
-swim3 <- filter(data, event == "500m swim")
-
+swim3 <- filter(data, event =="500m swim")
 
 # Get racers
-# Sorted, unique, unidentified removed
+# Unique, unidentified removed, and sorted
 get_racers <- function(x){
   racers <- sort(unique(x$name))
   racers <- racers[!racers %in% c("*** Unidentified", "Unidentified", "Unknown")]
@@ -47,6 +56,19 @@ racers_swim1 <- get_racers(swim1)
 racers_swim2 <- get_racers(swim2)
 racers_swim3 <- get_racers(swim3)
 
+# Setup theme
+my_theme <- theme(axis.text=element_text(size=11),
+                  legend.text=element_text(size=12),
+                  legend.title=element_text(size=13),
+                  axis.title=element_text(size=13),
+                  strip.text=element_text(size=13),
+                  plot.title=element_text(size=16),
+                  panel.grid.major = element_blank(), 
+                  panel.grid.minor = element_blank(),
+                  panel.background = element_blank(), 
+                  axis.line = element_line(colour = "black"))
+
+
 
 # User interface
 ################################################################################
@@ -54,92 +76,94 @@ racers_swim3 <- get_racers(swim3)
 # User interface
 ui <- navbarPage("",
                  
-  # welcome page
+  # Welcome page
   tabPanel("Home",
            
-    # title
-    titlePanel("Working on our Nite Moves"),
+    # Title
+    titlePanel("Working On Our Nite Moves"),
     
-    ## 
+    # Layout
     sidebarLayout(
       
+      # Sidebar: plotting options
       sidebarPanel(
+        
+        # Select season
         checkboxGroupInput(inputId = "seasons", "Choose season(s):",
                            choices = as.character(unique(data$season)), selected = "2019", inline = FALSE),
         
+        # Select event
         selectInput(inputId = "event", "Choose event:",
-                    choices = unique(data$event), selected = "5km run", multiple = FALSE),
+                    choices = levels(data$event), selected = "5km run", multiple = FALSE),
       
-        selectizeInput(inputId = "participant", label = "Choose racer:", 
-                       choices = c("None", racers), selected = "None", multiple = FALSE,
-                       options = NULL)),
+        # Select athletes
+        selectizeInput(inputId = "participant", label = "You, your friends, and your nemeses:", 
+                       choices = c(racers),  multiple = T, options = NULL)),
       
-        # Plot homepage figure
-        mainPanel(plotOutput(outputId = "homepage_fig"))
+        # Main panel: main plot
+        mainPanel(
+          plotOutput(outputId = "mainPlot")
+        )
         
       )),
-      
-                 
-  # Results table
-  tabPanel("All",
-           
+  
+  # Individual results
+  tabPanel("Individual results",
+  
     # Title
-    titlePanel("All results"), 
+    titlePanel("Individual results"),
     
     # Select athlete
-    selectInput("allAthlete",
-                "Select athlete:",
-                choices=sort(unique(data$name)), multiple=F, selectize=F),
+    selectizeInput(inputId = "participant1", label = "Select athlete:", 
+                   choices = c(racers), multiple = F, options = NULL),
     
-    # Results table
-    DT::dataTableOutput("resultsTable")
+    # Plot individual results
+    plotOutput(outputId = "indivEventPlot"),
+    br(), 
+    plotOutput(outputId = "indivAquaPlot")
+    
+    
            
   ),
   
-  # Swim plot
-  tabPanel("Swim",
+  # Records
+  tabPanel("Records",
            
     # Title
-    titlePanel("1 km & 2 km swim results"),
+    titlePanel("Nite Moves Course Records"),
     
-    # Select athlete
-    selectInput("swim1Athlete",
-                "Select athlete:",
-                choices=sort(unique(swim1$name)), multiple=F, selectize=F)
+    # Running records
+    h3("5 km run records"),
+    h5("Top-ten runs"),
+    tableOutput("top10runs"),
+    h5("Top-ten women's runs"),
+    tableOutput("top10runs_f"),
+    h5("Top-ten men's runs"),
+    tableOutput("top10runs_m"),
+    br(),
+    
+    # Swim records
+    h3("1 km swim records"),
+    h5("Top-ten swims"),
+    tableOutput("top10swims"),
+    h5("Top-ten women's swims"),
+    tableOutput("top10swims_f"),
+    h5("Top-ten men's swims"),
+    tableOutput("top10swims_m"),
+    br(),
+    
+    # Aquathon records
+    h3("Aquathon records"),
+    h5("Top-ten aquathons"),
+    tableOutput("top10aquathons"),
+    h5("Top-ten women's aquathons"),
+    tableOutput("top10aquathons_f"),
+    h5("Top-ten men's aquathons"),
+    tableOutput("top10aquathons_m"),
+    br()
            
-  ),
+  )
   
-  # Run plot
-  tabPanel("Run",
-           
-    # Title
-    titlePanel("5 km run results"),
-    
-    # Select athlete
-    selectInput("runAthlete",
-                "Select athlete:",
-                choices=sort(unique(run5$name)), multiple=F, selectize=F)
-    
-  ),
-  
-  # Aquathon plot
-  tabPanel("Aquathon",
-           
-    # Title
-    titlePanel("Aquathon results"),
-    
-    # Select athlete
-    selectInput("aquaAthlete",
-               "Select athlete:",
-               choices=sort(unique(aqua$name)), multiple=F, selectize=F),
-    
-    # Plot aquathon times
-    plotOutput(outputId = "aquathonPlot")
-    
-  ),
-  
-  # Aquathon plot
-  tabPanel("Records")
   
 )
 
@@ -150,115 +174,176 @@ ui <- navbarPage("",
 # Server
 server <- function(input, output){
   
-  # All results table
-  # Filter data based on selections
-  output$resultsTable <- DT::renderDataTable(DT::datatable({
-    
-    # Format data for display
-    allAthlete <- "Tracey Mangin" 
-    sdata <- data %>% 
-      filter(name==allAthlete) %>% 
-      select(date, event, place, time, gplace, dplace, sw_time, sw_place, rn_time, rn_place)
-    
-  }))
+  # Main plot
+  #########################################
   
-  ## homepage plot
-  output$homepage_fig <- renderPlot({
+  output$mainPlot <- renderPlot({
     
     # Parameters
-    # event_name <- "Aquathon"; season_vec <- 2019; racer_name <- "Chris Free"
+    # event_name <- "Aquathon"; season_vec <- 2019; racer_vec <- "Chris Free"
     event_name <- input$event
     season_vec <- as.numeric(input$seasons)
-    racer_name <- input$participant
+    racer_vec <- input$participant
+    
+    # Aquathon plot
+    if(event_name=="Aquathon"){
+    
+      # Subset and reshape data for plotting
+      sdata <- data %>% 
+        filter(event=="Aquathon" & season %in% season_vec) %>% 
+        select(season, date, name, time, sw_time, rn_time) %>% 
+        gather(key="segment", value="time", 4:6) %>% 
+        mutate(segment=recode(segment, 
+                              "time"="Overall", 
+                              "rn_time"="Run (5.3 km)", 
+                              "sw_time"="Swim (1 km)"),
+               segment=factor(segment, levels=c("Overall", "Swim (1 km)", "Run (5.3 km)")))
+      
+      # Plot data
+      g <- ggplot(sdata, aes(x=date, y=time, group=name)) +
+        # Facet on segment
+        # facet_wrap(~ segment, ncol=1, scale="free") +
+        facet_grid(segment ~ season, scale="free") +
+        # Add all racers
+        geom_line(color="grey80") +
+        # Add racer subset
+        geom_line(filter(sdata, name %in% racer_vec), 
+                  mapping=aes(x=date, y=time, col=name)) +
+        geom_point(filter(sdata, name %in% racer_vec), 
+                   mapping=aes(x=date, y=time, col=name)) +
+        # Add legend
+        scale_color_discrete(name="Athlete") +
+        # Add season trend
+        # geom_smooth(method = "lm", se = FALSE) +
+        # Labels
+        labs(x="Week", y="Time") +
+        theme_bw() + my_theme
+      g
+    
+    # Single event plots
+    }else{
+      
+      # Subset and reshape data for plotting
+      sdata <- data %>% 
+        filter(event==event_name & season %in% season_vec) %>% 
+        select(season, date, name, time)
+      
+      # Plot data
+      g <- ggplot(sdata, aes(x=date, y=time, group=name)) +
+        # Facet on segment
+        facet_wrap(~ season, nrow=1, scale="free") +
+        # Add all racers
+        geom_line(color="grey80") +
+        # Add racer subset
+        geom_line(filter(sdata, name %in% racer_vec), 
+                  mapping=aes(x=date, y=time, col=name)) +
+        geom_point(filter(sdata, name %in% racer_vec), 
+                   mapping=aes(x=date, y=time, col=name)) +
+        # Add legend
+        scale_color_discrete(name="Athlete") +
+        # Add season trend
+        # geom_smooth(method = "lm", se = FALSE) +
+        # Labels
+        labs(x="Week", y="Time") +
+        theme_bw() + my_theme
+      g
+      
+    }
     
     
-    # Reshape data for plotting
-    sdata <- aqua %>%
+  })
+  
+  # Individual results
+  #########################################
+  
+  # Individual event results
+  output$indivEventPlot <- renderPlot({
+    
+    # Subset/format data
+    racer <- input$participant1
+    sdata <- data %>% 
+      filter(name==racer) %>% 
+      select(season, date, name, event, time)
+    
+    # Plot data
+    g <- ggplot(sdata, aes(x=date, y=time, color=event)) +
+      facet_wrap(~ season, scales="free_x") +
+      geom_line() +
+      geom_point() +
+      labs(x="Week", y="Time", title="Event results") +
+      scale_color_discrete(name="Event") +
+      theme_bw() + my_theme
+    g
+    
+  })
+  
+  # Individual aquathon plots
+  output$indivAquaPlot <- renderPlot({
+    
+    # Subset/format data
+    racer <- input$participant1
+    sdata <- data %>% 
+      filter(event=="Aquathon" & name==racer) %>% 
       select(season, date, name, time, sw_time, rn_time) %>% 
-      filter(season==2019) %>% 
       gather(key="segment", value="time", 4:6) %>% 
       mutate(segment=recode(segment, 
                             "time"="Overall", 
-                            "rn_time"="Run", 
-                            "sw_time"="Swim"))
+                            "rn_time"="Run (5.3 km)", 
+                            "sw_time"="Swim (1 km)"),
+             segment=factor(segment, levels=c("Overall", "Swim (1 km)", "Run (5.3 km)")))
     
     # Plot data
-    g <- ggplot(sdata, aes(x=date, y=time, group="name")) +
-      geom_line() +
-      facet_wrap(~segment, ncol=1, scale="free") +
-      # Labels
-      labs(x="", y="") +
-      theme_bw()
-    g
-    
-    
-    # Aquathon plot
-    g <- ggplot(aqua, aes(x=date, y=time))
-    
-    
-    
-    
-    # Plot data
-    ## each unitentified racer needs unique name.
-    
-    hpfig <- ggplot(data = data %>% filter(event == event_name,
-                                    season %in% season_vec), aes(x = date, y = time)) +
-      geom_point(size = 0.5, alpha = 0, color = "#CCCCCC") +
-      geom_line(data = data %>% filter(event == event_name,
-                                       season %in% season_vec), aes(x = date, y = time, group = name), color = "#CCCCCC") +
-      geom_line(data = data %>% filter(event == event_name,
-                                      season %in% season_vec,
-                                      name == racer_name), aes(x = date, y = time), color = "#28A072", alpha = 1, size = 1) +
-      geom_smooth(method = "lm", se = FALSE) +
-      facet_wrap(~season, nrow = 1, scales = "free") +
-      # ggtitle(paste(input$event, "Results", sep = " ")) +
-      labs(x="Date", y="Time") +
-      theme_bw() +
-      theme(axis.text = element_text(size = 12),
-            axis.title = element_text(size = 14),
-            title = element_text(size = 16),
-            strip.text = element_text(size = 14),
-            panel.grid.major = element_blank(), 
-            panel.grid.minor = element_blank())
-    
-    hpfig
-    
-    
-  })
-  
-
-  
-  # Plot aquathon times
-  output$aquathonPlot <- renderPlot({
-    
-    # Format data
-    # athlete <- "Tracey Mangin"
-    athlete <- input$aquaAthlete
-    sdata <- aqua %>% 
-      filter(name==athlete) %>% 
-      # Wide-to-long for plotting
-      select(date, time, sw_time, rn_time) %>% 
-      gather(key="type", value="time", 2:4) %>% 
-      mutate(type=plyr::revalue(type, c("time"="Overall",
-                                        "sw_time"="Swim", 
-                                        "rn_time"="Run"))) %>% 
-      # Format time
-      mutate(time1=ifelse(nchar(time)==5, paste0("0:", time), time),
-             time2=as.POSIXct(strptime(time1, format="%H:%M:%S")))
-    
-    # Plot data
-    g <- ggplot(sdata, aes(x=date, y=time2, col=type)) +
+    g <- ggplot(sdata, aes(x=date, y=time, color=segment)) +
+      facet_wrap(~ season, scales="free_x") +
       geom_line() +
       geom_point() +
-      labs(x="Date", y="Time") +
-      theme_bw()
+      labs(x="Week", y="Time", title="Aquathon segment results") +
+      scale_color_discrete(name="Segment") +
+      theme_bw() + my_theme
     g
-
     
   })
   
-
   
+  
+  # Records
+  #########################################
+  
+  # Build records function
+  # event1 <- "5 km run"; gender1 <- "M"
+  build_records <- function(event1, gender1){
+    if(gender1=="all"){genders <- c("M", "F")}else{genders <- gender1}
+    records <- data %>% 
+      # Reduce to runs
+      filter(event==event1 & gender %in% genders) %>% 
+      arrange(time) %>% 
+      slice(1:10) %>%
+      # Format columns
+      mutate(rank=1:n(),
+             time=format(time, "%M:%S"),
+             date=format(date, "%m/%d/%Y"),
+             age=as.character(age)) %>% 
+      # Reduce and rename columns 
+      select(rank, time, name, gender, age, date) %>% 
+      setNames(stringr::str_to_title(colnames(.))) 
+    return(records)
+  }
+  
+  # Running records
+  output$top10runs <- renderTable({runs_m <- build_records("5 km run", "all")})
+  output$top10runs_m <- renderTable({runs_m <- build_records("5 km run", "M")})
+  output$top10runs_f <- renderTable({runs_m <- build_records("5 km run", "F")})
+  
+  # Swimming records
+  output$top10swims <- renderTable({runs_m <- build_records("1 km swim", "all")})
+  output$top10swims_m <- renderTable({runs_m <- build_records("1 km swim", "M")})
+  output$top10swims_f <- renderTable({runs_m <- build_records("1 km swim", "F")})
+  
+  # Aquathon records
+  output$top10aquathons <- renderTable({runs_m <- build_records("Aquathon", "all")})
+  output$top10aquathons_m <- renderTable({runs_m <- build_records("Aquathon", "M")})
+  output$top10aquathons_f <- renderTable({runs_m <- build_records("Aquathon", "F")})
+
 }
 
 shinyApp(ui = ui, server = server)

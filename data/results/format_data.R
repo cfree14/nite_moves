@@ -172,7 +172,7 @@ format_data <- function(filename){
              gender=ifelse(grepl("F", age), "F", "M"),
              age=as.numeric(gsub("F", "", age)),
              # Add date/event columns
-             event="1km swim",
+             event="1 km swim",
              date=date) %>%
       select(date, event, place, bib, name, age, gender, everything())
     
@@ -350,18 +350,31 @@ sdata <- data2 %>%
   gather(key="segment", value="time", 4:6) %>% 
   mutate(segment=recode(segment, 
                         "time"="Overall", 
-                        "rn_time"="Run", 
-                        "sw_time"="Swim"))
+                        "rn_time"="Run (5.3 km)", 
+                        "sw_time"="Swim (1 km)"),
+         segment=factor(segment, levels=c("Overall", "Swim (1 km)", "Run (5.3 km)")))
+
+# Racer names
+racer_names <- c("Tracey Mangin", "Chris Free", "Ethan Hall")
 
 # Plot data
 g <- ggplot(sdata, aes(x=date, y=time, group=name)) +
+  # Facet on segment
+  # facet_wrap(~ segment, ncol=1, scale="free") +
+  facet_grid(segment ~ season, scale="free") +
   # Add all racers
   geom_line(color="grey80") +
+  # Add racer subset
+  geom_line(filter(sdata, name %in% racer_names), 
+            mapping=aes(x=date, y=time, col=name)) +
+  geom_point(filter(sdata, name %in% racer_names), 
+            mapping=aes(x=date, y=time, col=name)) +
+  # Add legend
+  scale_color_discrete(name="Athlete") +
   # Add season trend
-  geom_smooth(method = "lm", se = FALSE) +
-  facet_wrap(~ segment, ncol=1, scale="free") +
+  # geom_smooth(method = "lm", se = FALSE) +
   # Labels
-  labs(x="", y="") +
+  labs(x="Week", y="Time") +
   theme_bw()
 g
 
