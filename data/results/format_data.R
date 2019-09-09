@@ -303,21 +303,69 @@ for(i in 1:length(files)){
   
 }
 
+# Format time function
+# x <- data2$time
+format_time <- function(x){
+  
+  # Format times
+  time_df <- tibble(time_orig=x) %>% 
+    # Calculate number of characters
+    mutate(nchar=nchar(time_orig)) %>% 
+    #arrange(desc(nchar)) %>% # only when testing!
+    # Convert to HH:MM:SS character
+    mutate(time_char=ifelse(nchar==7, paste0("0", time_orig), 
+                       ifelse(nchar==5, paste0("00:", time_orig),
+                              ifelse(nchar==4, paste0("00:0", time_orig), NA)))) %>% 
+    # Convert to lubridate time object (HMS) and POSIX time object
+    mutate(#time_hms=hms(time_char), 
+           time_posix=as.POSIXct(strptime(time_char, format="%H:%M:%S")))
+  
+  # Return the POSIX times
+  times <- time_df$time_posix
+  return(times)
+
+}
+
 # Final formatting
 data2 <- data1 %>% 
   arrange(date, event, place) %>% 
   # Add season column
   mutate(season=as.numeric(year(date)), 
-         time=ifelse(nchar(time)==5, paste0("0:", time), time),
-         time=as.POSIXct(strptime(time, format="%H:%M:%S")),
-         sw_time=ifelse(nchar(sw_time)==5, paste0("0:", sw_time), sw_time),
-         sw_time=as.POSIXct(strptime(sw_time, format="%H:%M:%S")),
-         rn_time=ifelse(nchar(rn_time)==5, paste0("0:", rn_time), rn_time),
-         rn_time=as.POSIXct(strptime(rn_time, format="%H:%M:%S"))) %>% 
-         # sw_time=ms(sw_time),
-         # rn_time=ms(rn_time)) %>% 
+         time=format_time(time),
+         sw_time=format_time(sw_time),
+         rn_time=format_time(rn_time)) %>% 
   select(season, everything())
 
 # Export
 saveRDS(data2, file=file.path(outdir, "nite_moves_data.Rds"))
+
+
+# Play with plotting
+################################################################################
+
+# Subset and reshape data for plotting
+sdata <- data2 %>% 
+  filter(event=="Aquathon" & season==2019) %>% 
+  select(season, date, name, time, sw_time, rn_time) %>% 
+  gather(key="segment", value="time", 4:6) %>% 
+  mutate(segment=recode(segment, 
+                        "time"="Overall", 
+                        "rn_time"="Run", 
+                        "sw_time"="Swim"))
+
+# Plot data
+g <- ggplot(sdata, aes(x=date, y=time, group=name)) +
+  # Add all racers
+  geom_line(color="grey80") +
+  # Add season trend
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~ segment, ncol=1, scale="free") +
+  # Labels
+  labs(x="", y="") +
+  theme_bw()
+g
+
+
+
+
 

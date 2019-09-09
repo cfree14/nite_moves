@@ -30,9 +30,22 @@ swim1 <- filter(data, event=="1km swim")
 swim2 <- filter(data, event=="2km swim")
 swim3 <- filter(data, event == "500m swim")
 
-# vector of racers
-racer_vec <- unique(data$name)
-racer_vec2 <- racer_vec[!racer_vec %in% c("*** Unidentified", "Unidentified", "Unknown")]
+
+# Get racers
+# Sorted, unique, unidentified removed
+get_racers <- function(x){
+  racers <- sort(unique(x$name))
+  racers <- racers[!racers %in% c("*** Unidentified", "Unidentified", "Unknown")]
+  return(racers)
+}
+
+# Vectors of racers
+racers <- get_racers(data)
+racers_aqua <- get_racers(aqua)
+racers_run5 <- get_racers(run5)
+racers_swim1 <- get_racers(swim1)
+racers_swim2 <- get_racers(swim2)
+racers_swim3 <- get_racers(swim3)
 
 
 # User interface
@@ -58,7 +71,7 @@ ui <- navbarPage("",
                     choices = unique(data$event), selected = "5km run", multiple = FALSE),
       
         selectizeInput(inputId = "participant", label = "Choose racer:", 
-                       choices = c("None", racer_vec2), selected = "None", multiple = FALSE,
+                       choices = c("None", racers), selected = "None", multiple = FALSE,
                        options = NULL)),
       
         # Plot homepage figure
@@ -152,9 +165,38 @@ server <- function(input, output){
   ## homepage plot
   output$homepage_fig <- renderPlot({
     
+    # Parameters
+    # event_name <- "Aquathon"; season_vec <- 2019; racer_name <- "Chris Free"
     event_name <- input$event
     season_vec <- as.numeric(input$seasons)
     racer_name <- input$participant
+    
+    
+    # Reshape data for plotting
+    sdata <- aqua %>%
+      select(season, date, name, time, sw_time, rn_time) %>% 
+      filter(season==2019) %>% 
+      gather(key="segment", value="time", 4:6) %>% 
+      mutate(segment=recode(segment, 
+                            "time"="Overall", 
+                            "rn_time"="Run", 
+                            "sw_time"="Swim"))
+    
+    # Plot data
+    g <- ggplot(sdata, aes(x=date, y=time, group="name")) +
+      geom_line() +
+      facet_wrap(~segment, ncol=1, scale="free") +
+      # Labels
+      labs(x="", y="") +
+      theme_bw()
+    g
+    
+    
+    # Aquathon plot
+    g <- ggplot(aqua, aes(x=date, y=time))
+    
+    
+    
     
     # Plot data
     ## each unitentified racer needs unique name.
@@ -169,7 +211,7 @@ server <- function(input, output){
                                       name == racer_name), aes(x = date, y = time), color = "#28A072", alpha = 1, size = 1) +
       geom_smooth(method = "lm", se = FALSE) +
       facet_wrap(~season, nrow = 1, scales = "free") +
-      ggtitle(paste(input$event, "Results", sep = " ")) +
+      # ggtitle(paste(input$event, "Results", sep = " ")) +
       labs(x="Date", y="Time") +
       theme_bw() +
       theme(axis.text = element_text(size = 12),
