@@ -82,6 +82,8 @@ ui <- navbarPage("",
     # Title
     titlePanel("Working On Our Nite Moves"),
     
+    p("Welcome to the Nite Moves results visualizer! To view your progress relative to your friends (or your nemeses!), specify the event, seasons, and athletes of interest in the menu. In the graphs, the grey lines show results for every athlete and the colored lines show results for the selected athletes. Keep working on those Nite Moves, racer!"),
+    
     # Layout
     sidebarLayout(
       
